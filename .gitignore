@@ -1,0 +1,7 @@
+*.o
+*.list
+*.od
+*.raw
+*.add
+HELLO
+fnord.dsk
