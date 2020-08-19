@@ -1,8 +1,8 @@
 .macpack apple2
 
-CR      = $0D
 Asc_1   = $31
 Asc_2   = $32
+Scr_CR  = $8D
 Scr_1   = $B1
 Scr_2   = $B2
 Scr_A   = $C1
@@ -45,9 +45,19 @@ DrawMsg:LDA #<Message   ; Initialize start of string
         LDA #>Message
         STA StrPtr+1
         LDY #$00
-DrawLp: LDA (StrPtr),Y  ; Load next character
+DrawLp:
+        LDA (StrPtr),Y  ; Load next character
         BEQ IterMsg     ; Done drawing if == NUL byte
         JSR XCall       ; Replace letters with "X" if open-apple pressed
+
+        ; Just before CR, check our vertical position,
+        ; and halt if we're on the last line
+        CMP #Scr_CR
+        BNE NotLastCR
+        LDX CV
+        CPX #23
+        BEQ DrawEnd
+NotLastCR:
         JSR MyCout      ; Jump to user-hookable/monitor's char-printing routine
         INC StrPtr
         BNE DS
@@ -56,7 +66,7 @@ DS:
         JSR MaybeSwitch
         JMP DrawLp
 IterMsg:
-        ;Jmp DrawMsg
+        Jmp DrawMsg
 DrawEnd:JSR Origin      ; Return cursor to 0, 0
         JSR MaybeCopy
         JMP CtrInit     ;  -- could pause or exit on some key here?
@@ -179,6 +189,9 @@ Message:
          scrcode $0D
          scrcode "DO NOT TRY PRESSING `2` UNTIL YOU'VE", $0D
          scrcode "TYPED `1` AT LEAST ONCE, OR NOTHING", $0D
-         scrcode "WILL HAPPEN!", $0D, $0D, $0D
+         scrcode "WILL HAPPEN!", $0D
+         scrcode $0D
+         scrcode "~~~ MESSAGE REPEATS ~~~", $0D
+         scrcode $0D
          .BYTE $00
          .BYTE $00
