@@ -1,7 +1,10 @@
 .macpack apple2
 
-MsgCnt  = 3     ; How many times to print the message to the screen
-
+CR      = $0D
+Asc_1   = $31
+Asc_2   = $32
+Scr_1   = $B1
+Scr_2   = $B2
 Scr_A   = $C1
 Scr_Z   = $DA
 
@@ -11,14 +14,16 @@ StrPtr  = $06
 CpyFlag = $08
 TxtAddr1= $1A
 TxtAddr2= $1C
+KeySv   = $EB
 TransFn = $EC
-MsgCtr  = $EE
 
 WNDTOP  = $22
 CH      = $24
 CV      = $25
 CSWL    = $36
 
+KbdStrobe= $C000
+AnyKey   = $C010
 Page2Off = $C054
 Page2On  = $C055
 OpenApple   = $C061
@@ -32,15 +37,15 @@ Mon_VTABZ   = $fc24
 Begin:  JSR Mon_HOME    ; Clear the screen at start
         LDA #$80        ; Indicate we should copy to scr 2 when X's (first time)
         STA CpyFlag
-CtrInit:LDA #MsgCnt
-        STA MsgCtr
+CtrInit:
+        JSR SaveKey
         JSR XXX
 DrawMsg:LDA #<Message   ; Initialize start of string
         STA StrPtr
         LDA #>Message
         STA StrPtr+1
         LDY #$00
-DrawLp: LDA (StrPtr),Y  ; Load next charactr
+DrawLp: LDA (StrPtr),Y  ; Load next character
         BEQ IterMsg     ; Done drawing if == NUL byte
         JSR XCall       ; Replace letters with "X" if open-apple pressed
         JSR MyCout      ; Jump to user-hookable/monitor's char-printing routine
@@ -48,9 +53,8 @@ DrawLp: LDA (StrPtr),Y  ; Load next charactr
         BNE DS
         INC StrPtr+1
 DS:     JMP DrawLp
-IterMsg:DEC MsgCtr
-        BEQ DrawEnd
-        Jmp DrawMsg
+IterMsg:
+        ;Jmp DrawMsg
 DrawEnd:JSR Origin      ; Return cursor to 0, 0
         JSR MaybeCopy
         JSR MaybeSwitch
@@ -58,9 +62,20 @@ DrawEnd:JSR Origin      ; Return cursor to 0, 0
 
 MyCout: JMP (CSWL)
 
+SaveKey:LDA AnyKey
+        BPL NoKey
+        LDA KbdStrobe
+        AND #$7F
+        STA KeySv
+        RTS
+NoKey:  LDA #$00
+        STA KeySv
+        RTS
+
 XXX:
-        BIT OpenApple   ; Test if the open apple is pressed
-        BPL XNo         ;  return if it isn't
+        LDA KeySv
+        CMP #Asc_1
+        BNE XNo         ;  return if it isn't
 XYes:   LDA #<XTrans    ; Arrange for all uppercase letters to transform to X
         STA TransFn
         LDA #>XTrans
@@ -92,9 +107,10 @@ Origin: LDA WNDTOP
         jmp Mon_VTABZ   ; will return to Origin's caller
 
 MaybeSwitch:            ;; Swap to text page 1 or 2 depending on
-                        ;; state of closed-apple
-        BIT ClosedApple
-        BMI Switch
+                        ;; state of the `2` key
+        LDA KeySv
+        CMP #Asc_2
+        BEQ Switch
         LDA Page2Off    ; not pressed, use page 1
         RTS
 Switch: LDA Page2On     ; pressed, use page 2
@@ -106,8 +122,6 @@ MaybeCopy:              ;; Copy text buf 1 to txt buf 2 if open-apple and
         CMP #<XTrans
         BNE MCEnd
         BIT CpyFlag
-        BPL MCEnd
-        BIT OpenApple
         BPL MCEnd
         LDA #$00        ; We copy! First, clear the copy flag
         STA CpyFlag
@@ -146,19 +160,21 @@ MCCopyRow3:             ; Copy 120 chars (3 rows)
 MCEnd:  RTS
 
 Message:
-         scrcode "THIS IS THE SONG THAT NEVER ENDS,"
+         ;       "0123456789012345678901234567890123456789"
+         scrcode "THE PURPOSE OF THIS PROGRAM IS TO", $0D
+         scrcode "SHOW THE DIFFERENCE IN SPEED BETWEEN", $0D
+         scrcode "DRAWING A BUNCH OF X'S TO THE SCREEN", $0D
+         scrcode "THAT YOU ARE CURRENTLY VIEWING,", $0D
+         scrcode "VERSUS SWAPPING TO A DIFFERENT TEXT", $0D
+         scrcode "BUFFER, INSTANTLY CHANGING THE DISPLAY.", $0D
          scrcode $0D
-         scrcode "IT JUST GOES ON AND ON MY FRIEND!"
+         scrcode "TO TRY IT OUT, HOLD THE `1` KEY TO DRAW", $0D
+         scrcode "X'S - AS FAST AS POSSIBLE - OVER EVERY", $0D
+         scrcode "LETTER ON THE SCREEN; OR HOLD THE `2`", $0D
+         scrcode "KEY DOWN TO SWITCH TO TEXT PAGE 2.", $0D
          scrcode $0D
-         scrcode "SOME PEOPLE"
-         scrcode $0D
-         scrcode "  - STARTED SINGING IT -"
-         scrcode $0D
-         scrcode "NOT KNOWING WHAT IT WAS,"
-         scrcode $0D
-         scrcode "AND THEY'LL CONTINUE SINGING IT FOREVER"
-         scrcode $0D
-         scrcode "    JUST BECAUSE..."
-         scrcode $0D
+         scrcode "DO NOT TRY PRESSING `2` UNTIL YOU'VE", $0D
+         scrcode "TYPED `1` AT LEAST ONCE, OR NOTHING", $0D
+         scrcode "WILL HAPPEN!", $0D, $0D, $0D
          .BYTE $00
          .BYTE $00
