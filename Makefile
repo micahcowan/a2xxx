@@ -5,10 +5,12 @@ PROGRAMS_od = $(patsubst %,%.od,$(PROGRAMS))
 PROGRAMS_add = $(patsubst %,%.add,$(PROGRAMS))
 all: $(PROGRAMS_add)
 
+loadloc=0x$(shell cat $(basename $1).s | sed -n 's/^[ 	]*\.[Oo][Rr][Gg][ 	]*\$$\([0-9A-Fa-f]*\).*/\1/p')
+
 .SECONDARY:
 
 %.add: %.od XXX.dsk
-	dos33 -y -a 0x800 XXX.dsk BSAVE $(basename $@).raw $(shell echo $(basename $@) | tr '[:lower:]' '[:upper:]')
+	dos33 -y -a $(call loadloc,$@) XXX.dsk BSAVE $(basename $@).raw $(shell echo $(basename $@) | tr '[:lower:]' '[:upper:]')
 	touch $@
 
 XXX.dsk: empty.dsk HELLO Makefile
