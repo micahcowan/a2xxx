@@ -52,12 +52,13 @@ DrawLp: LDA (StrPtr),Y  ; Load next character
         INC StrPtr
         BNE DS
         INC StrPtr+1
-DS:     JMP DrawLp
+DS:     
+        JSR MaybeSwitch
+        JMP DrawLp
 IterMsg:
         ;Jmp DrawMsg
 DrawEnd:JSR Origin      ; Return cursor to 0, 0
         JSR MaybeCopy
-        JSR MaybeSwitch
         JMP CtrInit     ;  -- could pause or exit on some key here?
 
 MyCout: JMP (CSWL)
@@ -108,13 +109,16 @@ Origin: LDA WNDTOP
 
 MaybeSwitch:            ;; Swap to text page 1 or 2 depending on
                         ;; state of the `2` key
+        BIT CpyFlag
+        BMI NoSw        ; Don't switch if we haven't copied to it!
         LDA KeySv
         CMP #Asc_2
         BEQ Switch
-        LDA Page2Off    ; not pressed, use page 1
+NoSw:   LDA Page2Off    ; `2` not pressed, use page 1
         RTS
 Switch: LDA Page2On     ; pressed, use page 2
-        RTS
+        JSR SaveKey     ;  and stay there (not writing or copying)
+        JMP MaybeSwitch ;  until no longer pressed
 
 MaybeCopy:              ;; Copy text buf 1 to txt buf 2 if open-apple and
                         ;; we haven't done it already (check CpyFlag)
