@@ -1,19 +1,19 @@
 .PHONY: all
 
-PROGRAMS = mixcase fnord hlspaces double leet whabat xxx
+PROGRAMS = xxx
 PROGRAMS_od = $(patsubst %,%.od,$(PROGRAMS))
 PROGRAMS_add = $(patsubst %,%.add,$(PROGRAMS))
 all: $(PROGRAMS_add)
 
 .SECONDARY:
 
-%.add: %.od fnord.dsk
-	dos33 -y -a 0x300 fnord.dsk BSAVE $(basename $@).raw $(shell echo $(basename $@) | tr '[:lower:]' '[:upper:]')
+%.add: %.od XXX.dsk
+	dos33 -y -a 0x800 XXX.dsk BSAVE $(basename $@).raw $(shell echo $(basename $@) | tr '[:lower:]' '[:upper:]')
 	touch $@
 
-fnord.dsk: empty.dsk HELLO
-	cp empty.dsk fnord.dsk
-	dos33 -y fnord.dsk SAVE A HELLO
+XXX.dsk: empty.dsk HELLO Makefile
+	cp empty.dsk $@
+	dos33 -y $@ SAVE A HELLO
 
 HELLO: hello.bas
 	tokenize_asoft < $< > $@ || { rm $@; exit 1; }
