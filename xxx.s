@@ -63,12 +63,12 @@ NotLastCR:
         BNE DS
         INC StrPtr+1
 DS:     
-        JSR MaybeSwitch
         JMP DrawLp
 IterMsg:
         Jmp DrawMsg
 DrawEnd:JSR Origin      ; Return cursor to 0, 0
         JSR MaybeCopy
+        JSR MaybeSwitch
         JMP CtrInit     ;  -- could pause or exit on some key here?
 
 MyCout: JMP (CSWL)
@@ -127,8 +127,7 @@ MaybeSwitch:            ;; Swap to text page 1 or 2 depending on
 NoSw:   LDA Page2Off    ; `2` not pressed, use page 1
         RTS
 Switch: LDA Page2On     ; pressed, use page 2
-        JSR SaveKey     ;  and stay there (not writing or copying)
-        JMP MaybeSwitch ;  until no longer pressed
+        RTS
 
 MaybeCopy:              ;; Copy text buf 1 to txt buf 2 if open-apple and
                         ;; we haven't done it already (check CpyFlag)
