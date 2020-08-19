@@ -3,20 +3,33 @@
 Scr_A   = $C1
 Scr_Z   = $DA
 OpenApple   = $C061
+ClosedApple = $C062
+
+TxtBufPg1 = $4
+TxtBufPg2 = $8
 
 StrPtr  = $06
+CpyFlag = $08
+
+TxtAddr1= $1A
+TxtAddr2= $1C
 
 WNDTOP  = $22
 CH      = $24
 CV      = $25
 CSWL    = $36
 
+Page2Off = $C054
+Page2On  = $C055
+
 Mon_HOME    = $fc58
 Mon_VTABZ   = $fc24
 
-.org $800
+.org $2000
 
 Begin:  JSR Mon_HOME    ; Clear the screen at start
+        LDA #$80        ; Indicate we should copy to scr 2 when X's (first time)
+        STA CpyFlag
 DrawMsg:LDA #<Message   ; Initialize start of string
         STA StrPtr
         LDA #>Message
@@ -30,7 +43,9 @@ DrawLp: LDA (StrPtr),Y  ; Load next charactr
         BNE DrawLp
 
 DrawEnd:JSR Origin      ; Return cursor to 0, 0
-        BEQ DrawMsg     ;  -- could pause or exit on some key here?
+        JSR MaybeCopy
+        JSR MaybeSwitch
+        JMP DrawMsg     ;  -- could pause or exit on some key here?
 
 MyCout: JMP (CSWL)
 
@@ -55,6 +70,57 @@ Origin: LDA WNDTOP
         LDA #$00
         STA CH
         jmp Mon_VTABZ   ; will return to Origin's caller
+
+MaybeSwitch:            ;; Swap to text page 1 or 2 depending on
+                        ;; state of closed-apple
+        BIT ClosedApple
+        BMI Switch
+        LDA Page2Off    ; not pressed, use page 1
+        RTS
+Switch: LDA Page2On     ; pressed, use page 2
+        RTS
+
+MaybeCopy:              ;; Copy text buf 1 to txt buf 2 if open-apple and
+                        ;; we haven't done it already (check CpyFlag)
+        BIT CpyFlag
+        BPL MCEnd
+        BIT OpenApple
+        BPL MCEnd
+        LDA #$00        ; We copy! First, clear the copy flag
+        STA CpyFlag
+        LDY #TxtBufPg1   ; Initialize some pointers to $400 and $800
+        STY TxtAddr1+1  ;  (the two 40-col text buffers)
+        LDY #TxtBufPg2
+        STY TxtAddr2+1
+        LDY #$00
+        STY TxtAddr1
+        STY TxtAddr2    ; Y is now already initialized to zero
+MCCopyRow3:             ; Copy 120 chars (3 rows)
+        LDA (TxtAddr1),Y
+        STA (TxtAddr2),Y
+        INY
+        CPY #120
+        BNE MCCopyRow3
+        LDY #$00        ; Reset Y
+
+        CLC             ; Add $80 to each address
+        LDA TxtAddr1
+        ADC #$80
+        STA TxtAddr1
+        LDA TxtAddr1+1
+        ADC #$00
+        STA TxtAddr1+1
+
+        CLC
+        LDA TxtAddr2
+        ADC #$80
+        STA TxtAddr2
+        LDA TxtAddr2+1
+        ADC #$00
+        STA TxtAddr2+1
+        CMP #$0C        ; Exit if we reached the end of page 2
+        BNE MCCopyRow3
+MCEnd:  RTS
 
 Message: scrcode $0D
          scrcode $0D
