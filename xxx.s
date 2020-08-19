@@ -1,20 +1,18 @@
 .macpack apple2
 
+MsgCnt  = 3     ; How many times to print the message to the screen
+
 Scr_A   = $C1
 Scr_Z   = $DA
-OpenApple   = $C061
-ClosedApple = $C062
 
 TxtBufPg1 = $4
 TxtBufPg2 = $8
-
 StrPtr  = $06
 CpyFlag = $08
-
 TxtAddr1= $1A
 TxtAddr2= $1C
-
-TransFn = $30
+TransFn = $EC
+MsgCtr  = $EE
 
 WNDTOP  = $22
 CH      = $24
@@ -23,6 +21,8 @@ CSWL    = $36
 
 Page2Off = $C054
 Page2On  = $C055
+OpenApple   = $C061
+ClosedApple = $C062
 
 Mon_HOME    = $fc58
 Mon_VTABZ   = $fc24
@@ -32,22 +32,29 @@ Mon_VTABZ   = $fc24
 Begin:  JSR Mon_HOME    ; Clear the screen at start
         LDA #$80        ; Indicate we should copy to scr 2 when X's (first time)
         STA CpyFlag
+CtrInit:LDA #MsgCnt
+        STA MsgCtr
+        JSR XXX
 DrawMsg:LDA #<Message   ; Initialize start of string
         STA StrPtr
         LDA #>Message
         STA StrPtr+1
         LDY #$00
-        JSR XXX
 DrawLp: LDA (StrPtr),Y  ; Load next charactr
-        BEQ DrawEnd     ; Done drawing if == NUL byte
+        BEQ IterMsg     ; Done drawing if == NUL byte
         JSR XCall       ; Replace letters with "X" if open-apple pressed
         JSR MyCout      ; Jump to user-hookable/monitor's char-printing routine
-        INY
-        BNE DrawLp
+        INC StrPtr
+        BNE DS
+        INC StrPtr+1
+DS:     JMP DrawLp
+IterMsg:DEC MsgCtr
+        BEQ DrawEnd
+        Jmp DrawMsg
 DrawEnd:JSR Origin      ; Return cursor to 0, 0
         JSR MaybeCopy
         JSR MaybeSwitch
-        JMP DrawMsg     ;  -- could pause or exit on some key here?
+        JMP CtrInit     ;  -- could pause or exit on some key here?
 
 MyCout: JMP (CSWL)
 
@@ -138,8 +145,7 @@ MCCopyRow3:             ; Copy 120 chars (3 rows)
         BNE MCCopyRow3
 MCEnd:  RTS
 
-Message: scrcode $0D
-         scrcode $0D
+Message:
          scrcode "THIS IS THE SONG THAT NEVER ENDS,"
          scrcode $0D
          scrcode "IT JUST GOES ON AND ON MY FRIEND!"
@@ -153,21 +159,6 @@ Message: scrcode $0D
          scrcode "AND THEY'LL CONTINUE SINGING IT FOREVER"
          scrcode $0D
          scrcode "    JUST BECAUSE..."
-         scrcode $0D
-         scrcode "THIS IS THE SONG THAT NEVER ENDS,"
-         scrcode $0D
-         scrcode "IT JUST GOES ON AND ON MY FRIEND!"
-         scrcode $0D
-         scrcode "SOME PEOPLE"
-         scrcode $0D
-         scrcode "  - STARTED SINGING IT -"
-         scrcode $0D
-         scrcode "NOT KNOWING WHAT IT WAS,"
-         scrcode $0D
-         scrcode "AND THEY'LL CONTINUE SINGING IT FOREVER"
-         scrcode $0D
-         scrcode "    JUST BECAUSE..."
-         scrcode $0D
          scrcode $0D
          .BYTE $00
          .BYTE $00
