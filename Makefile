@@ -32,4 +32,4 @@ HELLO: hello.bas
 
 .PHONY: clean
 clean:
-	rm -f *.add *.o *.list *.od *.raw fnord.dsk
+	rm -f *.add *.o *.list *.od *.raw XXX.dsk HELLO
