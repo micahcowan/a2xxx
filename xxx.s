@@ -94,13 +94,17 @@ ToggleFn = KeyWait + 1
 	BNE :+
         BIT Page2On
         JMP KeyWait
-:	CMP #$AB ; '+'
-	BNE :+
-        INC WaitVal
+:	CMP #$AB ; '+' or '->'
+	BEQ :+
+        CMP #$95
+        BNE :++
+:       INC WaitVal
         JMP SetPageToggle
-:       CMP #$AD ; '-'
-        BNE :+
-        DEC WaitVal
+:       CMP #$AD ; '-' or '<-'
+        BEQ :+
+        CMP #$88
+        BNE :++
+:       DEC WaitVal
         JMP SetPageToggle
 :       CMP #$BD ; '='
         BNE :+
