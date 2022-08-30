@@ -12,18 +12,10 @@ Scr_2   = $B2
 Scr_A   = $C1
 Scr_Z   = $DA
 
-TxtBufPg1 = $4
-TxtBufPg2 = $8
-StrPtr  = $06
-CpyFlag = $08
-TxtAddr1= $1A
-TxtAddr2= $1C
-KeySv   = $EB
-TransFn = $EC
-
 WNDTOP  = $22
 CH      = $24
 CV      = $25
+BASL	= $28
 CSWL    = $36
 
 KbdStrobe= $C000
@@ -48,7 +40,8 @@ bootStrap8bws:
 
 Begin:  JSR Mon_HOME    ; Clear the screen at start
 	JSR PrintText	; Draw text to screen, as quickly as possible
-	LDA #1
+	JSR CopyP2
+        LDA #1
         STA PrevKey
 KeyWait:LDA KbdStrobe
         AND #7
@@ -70,7 +63,52 @@ KeyWait:LDA KbdStrobe
 :	CMP #4
 	BNE :+
         JSR BlastXText
+        JMP KeyWait
+:       CMP #5
+	BNE :+
+        BIT Page2Off
+	JMP KeyWait
+:       CMP #6
+	BNE :+
+        BIT Page2On
 :       JMP KeyWait
+
+CopyP2: LDA #0
+	STA BASL
+        STA $6
+        LDA #$4
+        STA BASL+1
+        LDA #$8
+        STA $7
+CopySt: LDY #0
+CopyLp: LDA (BASL),y
+	CMP #$C1 ; >= 'A'?
+        BCC @noTrans
+        CMP #$DB ; < 'Z'+1 ?
+        BCS @noTrans
+        LDA #$D8 ; -> 'X'
+@noTrans:
+	STA ($6),y
+        INY
+        CPY #120
+        BNE CopyLp
+        ; Done with a set of 3 lines.
+       	LDA #$80
+        CLC
+        ADC BASL
+        STA BASL
+        BCC :+
+        INC BASL+1
+:	LDA #$80
+	CLC
+        ADC $6
+        STA $6
+        BCC :+
+        INC $7
+:	LDA $7
+	CMP #$D
+        BNE CopySt
+	rts
 
 PrevKey:
 	.byte 0
