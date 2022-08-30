@@ -49,15 +49,27 @@ Begin:  JSR Mon_HOME    ; Clear the screen at start
 	JSR CopyP2
         LDA #1
         STA PrevKey
-KeyWait:LDA KbdStrobe
+KeyWait:
+ToggleFn = KeyWait + 1
+	JSR NoToggle
+	LDA KbdStrobe
 	BPL KeyWait
-	CMP #$C1
-        BCS @doRepeats
-	CMP PrevKey
-        BEQ KeyWait
-        STA PrevKey
-@doRepeats:
-        CMP #$B1 ; '1'
+        BIT AnyKey
+        CMP #$C1 ; 'A'
+        BCS Toggles ; >= 'A'?
+        PHA
+        LDA #<NoToggle
+        STA ToggleFn
+        LDA #>NoToggle
+        STA ToggleFn+1
+        PLA
+        ; Start checking keypresses
+        CMP #$B0 ; '0'
+        BNE :+
+        LDA #$1
+        STA WaitVal
+        JMP SetPageToggle
+:       CMP #$B1 ; '1'
         BNE :+
         JSR PrintText
         JMP KeyWait
@@ -81,28 +93,43 @@ KeyWait:LDA KbdStrobe
 	BNE :+
         BIT Page2On
         JMP KeyWait
-:	CMP #$C1 ; 'A'
+:	CMP #$AB ; '+'
 	BNE :+
-        JSR PrintXText
-        JSR PrintText
+        INC WaitVal
+        JMP SetPageToggle
+:       CMP #$AD ; '-'
+        BNE :+
+        DEC WaitVal
+        JMP SetPageToggle
+:       CMP #$BD ; '='
+        BNE :+
+        LDA #$70
+        STA WaitVal
+        JMP SetPageToggle
+:	JMP KeyWait
+Toggles:CMP #$C1 ; 'A'
+	BNE :+
+        LDA #<PrintToggle
+        STA ToggleFn
+        LDA #>PrintToggle
+        STA ToggleFn+1
         JMP KeyWait
 :	CMP #$C2 ; 'B'
 	BNE :+
-        JSR BlastXText
-        JSR BlastText
+        LDA #<BlastToggle
+        STA ToggleFn
+        LDA #>BlastToggle
+        STA ToggleFn+1
         JMP KeyWait
 :	CMP #$C3 ; 'C'
-	BNE :+
-        BIT Page2On
-@waitLda:
-@waitVal = @waitLda + 1
-        LDA #$60
-        JSR Mon_WAIT
-        BIT Page2Off
-        LDA @waitVal
-        JSR Mon_WAIT
+	BNE NotC
+SetPageToggle:
+        LDA #<PageToggle
+        STA ToggleFn
+        LDA #>PageToggle
+        STA ToggleFn+1
         JMP KeyWait
-:	CMP #$C9 ; 'I'
+NotC:	CMP #$C9 ; 'I'
 	BNE :+
 	; Prompt for a hex "wait" value for 'C' demo
         LDA #0
@@ -117,9 +144,27 @@ KeyWait:LDA KbdStrobe
         LDY #0
         JSR Mon_GETNUM
         LDA A2L
-        STA @waitVal
+        STA WaitVal
 	JMP Begin
 :	JMP KeyWait
+
+PrintToggle:
+        JSR PrintXText
+        JMP PrintText
+BlastToggle:
+        JSR BlastXText
+        JMP BlastText
+PageToggle:
+        BIT Page2On
+WaitLda:
+WaitVal = WaitLda + 1
+        LDA #$70
+        JSR Mon_WAIT
+        BIT Page2Off
+        LDA WaitVal
+        JMP Mon_WAIT
+NoToggle:
+	RTS
 
 CopyP2: LDA #0
 	STA BASL
@@ -156,7 +201,7 @@ CopyLp: LDA (BASL),y
 :	LDA $7
 	CMP #$D
         BNE CopySt
-	rts
+	RTS
 
 PrevKey:
 	.byte 0
