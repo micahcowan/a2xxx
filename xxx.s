@@ -16,7 +16,9 @@ WNDTOP  = $22
 CH      = $24
 CV      = $25
 BASL	= $28
+PROMPT	= $33
 CSWL    = $36
+A2L	= $3E
 
 KbdStrobe= $C000
 AnyKey   = $C010
@@ -27,7 +29,11 @@ ClosedApple = $C062
 
 Mon_HOME    = $fc58
 Mon_VTABZ   = $fc24
+Mon_CLREOL  = $FC9C
+Mon_WAIT    = $FCA8
+Mon_GETLN   = $FD6A
 Mon_COUT    = $FDED
+Mon_GETNUM  = $FFA7
 
 .ifdef __8BITWORKSHOP__
 .org $803
@@ -44,6 +50,7 @@ Begin:  JSR Mon_HOME    ; Clear the screen at start
         LDA #1
         STA PrevKey
 KeyWait:LDA KbdStrobe
+	BPL KeyWait
 	CMP #$C1
         BCS @doRepeats
 	CMP PrevKey
@@ -87,8 +94,31 @@ KeyWait:LDA KbdStrobe
 :	CMP #$C3 ; 'C'
 	BNE :+
         BIT Page2On
+@waitLda:
+@waitVal = @waitLda + 1
+        LDA #$60
+        JSR Mon_WAIT
         BIT Page2Off
+        LDA @waitVal
+        JSR Mon_WAIT
         JMP KeyWait
+:	CMP #$C9 ; 'I'
+	BNE :+
+	; Prompt for a hex "wait" value for 'C' demo
+        LDA #0
+        STA CH
+        STA CV
+        JSR Mon_VTABZ
+        JSR Mon_CLREOL
+        LDA #$BA ; ':'
+        STA PROMPT
+        BIT AnyKey
+        JSR Mon_GETLN
+        LDY #0
+        JSR Mon_GETNUM
+        LDA A2L
+        STA @waitVal
+	JMP Begin
 :	JMP KeyWait
 
 CopyP2: LDA #0
