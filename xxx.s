@@ -32,6 +32,7 @@ Mon_VTABZ   = $fc24
 Mon_CLREOL  = $FC9C
 Mon_WAIT    = $FCA8
 Mon_GETLN   = $FD6A
+Mon_PRBYTE  = $FDDA
 Mon_COUT    = $FDED
 Mon_GETNUM  = $FFA7
 
@@ -128,6 +129,27 @@ SetPageToggle:
         STA ToggleFn
         LDA #>PageToggle
         STA ToggleFn+1
+        ; Put the wait time in the corner
+        LDA #23
+        STA CV
+        JSR Mon_VTABZ
+        LDA #37
+        STA CH
+        LDA WaitVal
+        JSR Mon_PRBYTE
+        ; Now copy the wait time to page 2 also
+        LDA BASL
+        STA $6
+        LDA BASL+1
+        CLC
+        ADC #4
+        STA $7
+        LDY #37
+        LDA (BASL),Y
+        STA ($6),Y
+        INY
+        LDA (BASL),Y
+        STA ($6),Y
         JMP KeyWait
 NotC:	CMP #$C9 ; 'I'
 	BNE :+
