@@ -83,13 +83,13 @@ KeyWait:LDA KbdStrobe
         JMP KeyWait
 :	CMP #$C1 ; 'A'
 	BNE :+
-        JSR PrintText
         JSR PrintXText
+        JSR PrintText
         JMP KeyWait
 :	CMP #$C2 ; 'B'
 	BNE :+
-        JSR BlastText
         JSR BlastXText
+        JSR BlastText
         JMP KeyWait
 :	CMP #$C3 ; 'C'
 	BNE :+
