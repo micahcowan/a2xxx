@@ -44,34 +44,52 @@ Begin:  JSR Mon_HOME    ; Clear the screen at start
         LDA #1
         STA PrevKey
 KeyWait:LDA KbdStrobe
-        AND #7
+	CMP #$C1
+        BCS @doRepeats
 	CMP PrevKey
         BEQ KeyWait
         STA PrevKey
-        CMP #1
+@doRepeats:
+        CMP #$B1 ; '1'
         BNE :+
         JSR PrintText
         JMP KeyWait
-:	CMP #2
+:	CMP #$B2 ; '2'
 	BNE :+
         JSR PrintXText
         JMP KeyWait
-:	CMP #3
+:	CMP #$B3 ; '3'
 	BNE :+
         JSR BlastText
         JMP KeyWait
-:	CMP #4
+:	CMP #$B4 ; '4'
 	BNE :+
         JSR BlastXText
         JMP KeyWait
-:       CMP #5
+:       CMP #$B5 ; '5'
 	BNE :+
         BIT Page2Off
 	JMP KeyWait
-:       CMP #6
+:       CMP #$B6 ; '6'
 	BNE :+
         BIT Page2On
-:       JMP KeyWait
+        JMP KeyWait
+:	CMP #$C1 ; 'A'
+	BNE :+
+        JSR PrintText
+        JSR PrintXText
+        JMP KeyWait
+:	CMP #$C2 ; 'B'
+	BNE :+
+        JSR BlastText
+        JSR BlastXText
+        JMP KeyWait
+:	CMP #$C3 ; 'C'
+	BNE :+
+        BIT Page2On
+        BIT Page2Off
+        JMP KeyWait
+:	JMP KeyWait
 
 CopyP2: LDA #0
 	STA BASL
