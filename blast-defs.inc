@@ -1,4 +1,5 @@
 reset
+lastChar .set 0
 
 .if .definedmacro(line)
 .delmacro line
@@ -14,12 +15,18 @@ reset
 .delmacro char
 .endif
 .macro char c
+.if c <> ' '
 .if xTrans && c >= 'A' && c <= 'Z'
-	LDA #$D8
+        curChar .set $D8
 .else
-	LDA #(c | $80)
-.endif
+        curChar .set (c | $80)
+.endif ; xTrans && alpha
+.if (!xTrans) || curChar <> lastChar
+	LDA #curChar
+        lastChar .set curChar
+.endif ; avoid repeated LDA on xTrans
         STA currentBase
+.endif ; ' '
         currentBase .set currentBase + 1
 .endmacro
 
