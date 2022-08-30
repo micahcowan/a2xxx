@@ -5,7 +5,7 @@ PROGRAMS_od = $(patsubst %,%.od,$(PROGRAMS))
 PROGRAMS_add = $(patsubst %,%.add,$(PROGRAMS))
 all: $(PROGRAMS_add)
 
-loadloc=0x$(shell cat $(basename $1).s | sed -n 's/^[ 	]*\.[Oo][Rr][Gg][ 	]*\$$\([0-9A-Fa-f]*\).*/\1/p')
+loadloc=0x$(shell cat $(basename $1).s | sed -n 's/^[ 	]*\.[Oo][Rr][Gg][ 	]*\$$\([0-9A-Fa-f]*\).*/\1/p' | tail -n 1)
 
 .SECONDARY:
 
