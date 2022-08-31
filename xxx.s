@@ -181,10 +181,22 @@ BlastToggle:
         JSR BlastXText
         JMP BlastText
 PageToggle:
+        ; Waste some extra time in "off"
+        LDY #6
+:       DEY
+        BNE :-
+        BEQ :+
+:       NOP
+        NOP
+        NOP
+        NOP
+        NOP
+        NOP
+        NOP
         BIT Page2On
 WaitLda:
 WaitVal = WaitLda + 1
-        LDA #$70
+        LDA #$1
         JSR Mon_WAIT
         BIT Page2Off
         LDA WaitVal
